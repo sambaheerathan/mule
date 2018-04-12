@@ -205,6 +205,8 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
     this.xmlConfigurationDocumentLoader = disableXmlValidations ? noValidationDocumentLoader() : schemaValidatingDocumentLoader();
     this.serviceDiscoverer = new DefaultRegistry(muleContext);
 
+    xmlApplicationParser = createApplicationParser();
+
     registerComponentBuildingDefinitions(serviceRegistry, MuleArtifactContext.class.getClassLoader(),
                                          componentBuildingDefinitionRegistry,
                                          getExtensionModels(muleContext.getExtensionManager()),
@@ -218,7 +220,7 @@ public class MuleArtifactContext extends AbstractRefreshableConfigApplicationCon
                                                .getComponentBuildingDefinitions()));
     }
 
-    xmlApplicationParser = createApplicationParser();
+
     this.beanDefinitionFactory =
         new BeanDefinitionFactory(componentBuildingDefinitionRegistry, muleContext.getErrorTypeRepository());
 
