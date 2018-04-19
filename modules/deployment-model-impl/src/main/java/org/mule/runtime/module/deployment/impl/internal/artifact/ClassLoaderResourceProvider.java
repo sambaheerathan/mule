@@ -4,7 +4,7 @@
  * license, a copy of which has been included with this distribution in the
  * LICENSE.txt file.
  */
-package org.mule.runtime.config.internal.dsl.model;
+package org.mule.runtime.module.deployment.impl.internal.artifact;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,12 +12,13 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import org.mule.runtime.api.exception.MuleRuntimeException;
-import org.mule.runtime.config.api.dsl.model.ResourceProvider;
+import org.mule.runtime.dsl.api.ResourceProvider;
 
 /**
  * Resource provider implementation that delegates to an actual class loader.
  */
-public class ClassLoaderResourceProvider implements ResourceProvider {
+public class ClassLoaderResourceProvider implements ResourceProvider
+{
 
   private ClassLoader classLoader;
 

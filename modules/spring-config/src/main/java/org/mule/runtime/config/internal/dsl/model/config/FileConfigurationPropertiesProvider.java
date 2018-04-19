@@ -9,10 +9,10 @@ package org.mule.runtime.config.internal.dsl.model.config;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
-import org.mule.runtime.config.api.dsl.model.ResourceProvider;
 import org.mule.runtime.config.api.dsl.model.properties.ConfigurationPropertiesProvider;
 import org.mule.runtime.config.api.dsl.model.properties.ConfigurationProperty;
 import org.mule.runtime.core.api.util.IOUtils;
+import org.mule.runtime.dsl.api.ResourceProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
