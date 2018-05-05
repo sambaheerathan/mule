@@ -519,17 +519,17 @@ public class ApplicationModel {
                 .withSimpleParameter(parameterAstHolder.getParameterAst().getParameterIdentifier().getIdentifier().getName(),
                                      localResolver.resolveValue(parameterAstHolder.getSimpleParameterValueAst().getRawValue()));
           } else {
-            ComplexParameterValueAst complexParameterValueAst = parameterAstHolder.getCompleParameterValueAst();
+            ComplexParameterValueAst complexParameterValueAst = parameterAstHolder.getComplexParameterValueAst();
             DefaultConfigurationParameters.Builder childParametersBuilder = DefaultConfigurationParameters.builder();
             configurationParametersBuilder.withComplexParameter(complexParameterValueAst.getComponent().getComponentIdentifier(),
                                                                 resolveConfigurationParameters(childParametersBuilder,
                                                                                                new ComponentAstHolder(complexParameterValueAst
                                                                                                    .getComponent()), // TODO fix
-                                                                                                                     // the
-                                                                                                                     // creation
-                                                                                                                     // of the
-                                                                                                                     // holder
-                                                                                                                     // here.
+                                                                                               // the
+                                                                                               // creation
+                                                                                               // of the
+                                                                                               // holder
+                                                                                               // here.
                                                                                                localResolver));
           }
         });
@@ -697,10 +697,10 @@ public class ApplicationModel {
   private void convertConfigFileToComponentModel(ArtifactAstHelper artifactAstHelper) {
 
     ComponentModelReader componentModelReader =
-            new ComponentModelReader(configurationProperties);
+        new ComponentModelReader(configurationProperties);
     artifactAstHelper.executeOnGlobalComponents(componentAstHolder -> {
       ComponentModel componentModel =
-              componentModelReader.extractComponentDefinitionModel(componentAstHolder);
+          componentModelReader.extractComponentDefinitionModel(componentAstHolder);
       if (muleComponentModels.isEmpty()) {
         muleComponentModels.add(componentModel);
       } else {
