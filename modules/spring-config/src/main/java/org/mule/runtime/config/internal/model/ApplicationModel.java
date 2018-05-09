@@ -101,6 +101,7 @@ import org.mule.runtime.config.internal.dsl.processor.ObjectTypeVisitor;
 import org.mule.runtime.config.internal.dsl.processor.xml.XmlCustomAttributeHandler;
 import org.mule.runtime.core.api.config.ConfigurationException;
 import org.mule.runtime.core.api.extension.MuleExtensionModelProvider;
+import org.mule.runtime.core.api.extension.MuleModuleExtensionModelProvider;
 import org.mule.runtime.dsl.api.component.ComponentBuildingDefinition;
 import org.mule.runtime.dsl.api.component.config.ComponentConfiguration;
 import org.mule.runtime.dsl.api.component.config.DefaultComponentLocation;
@@ -602,6 +603,7 @@ public class ApplicationModel {
       if (!extensionModels.contains(muleModel)) {
         extensionModels = new HashSet<>(extensionModels);
         extensionModels.add(muleModel);
+        extensionModels.add(MuleModuleExtensionModelProvider.getExtensionModel());
       }
 
       DslElementModelFactory elementFactory = DslElementModelFactory.getDefault(DslResolvingContext.getDefault(extensionModels));
