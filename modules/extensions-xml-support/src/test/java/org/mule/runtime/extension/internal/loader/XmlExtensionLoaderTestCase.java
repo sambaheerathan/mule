@@ -116,7 +116,7 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     Optional<OperationComponentModelModelProperty> modelProperty =
         operationModel.getModelProperty(OperationComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
-    assertThat(modelProperty.get().getBodyConstructAst().getProcessorComponents().size(), is(1));
+    assertThat(modelProperty.get().getBodyAst().getProcessorComponents().size(), is(1));
 
     assertThat(operationModel.getOutput().getType().getMetadataFormat(), is(MetadataFormat.JAVA));
     assertThat(operationModel.getOutput().getType(), instanceOf(StringType.class));
@@ -156,7 +156,7 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     Optional<OperationComponentModelModelProperty> modelProperty =
         operationModel.get().getModelProperty(OperationComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
-    assertThat(modelProperty.get().getBodyConstructAst().getProcessorComponents().size(), is(1));
+    assertThat(modelProperty.get().getBodyAst().getProcessorComponents().size(), is(1));
   }
 
   @Test
@@ -189,7 +189,7 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     Optional<OperationComponentModelModelProperty> modelProperty =
         operationModel.get().getModelProperty(OperationComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
-    assertThat(modelProperty.get().getBodyConstructAst().getProcessorComponents().size(), is(1));
+    assertThat(modelProperty.get().getBodyAst().getProcessorComponents().size(), is(1));
   }
 
   @Test
@@ -222,7 +222,7 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     Optional<OperationComponentModelModelProperty> modelProperty =
         operation.getModelProperty(OperationComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
-    assertThat(modelProperty.get().getBodyConstructAst().getProcessorComponents().size(), is(1));
+    assertThat(modelProperty.get().getBodyAst().getProcessorComponents().size(), is(1));
   }
 
   @Test
@@ -267,7 +267,7 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     Optional<OperationComponentModelModelProperty> modelProperty =
         operation.getModelProperty(OperationComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
-    assertThat(modelProperty.get().getBodyConstructAst().getProcessorComponents().size(), is(1));
+    assertThat(modelProperty.get().getBodyAst().getProcessorComponents().size(), is(1));
   }
 
   @Test
@@ -371,7 +371,7 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     Optional<OperationComponentModelModelProperty> modelProperty =
         operationModel.getModelProperty(OperationComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
-    assertThat(modelProperty.get().getBodyConstructAst().getProcessorComponents().size(), is(2));
+    assertThat(modelProperty.get().getBodyAst().getProcessorComponents().size(), is(2));
   }
 
   @Test
@@ -412,7 +412,7 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
       Optional<OperationComponentModelModelProperty> modelProperty =
           operationModel.getModelProperty(OperationComponentModelModelProperty.class);
       assertThat(modelProperty.isPresent(), is(true));
-      assertThat(modelProperty.get().getBodyConstructAst().getProcessorComponents().size(), is(1));
+      assertThat(modelProperty.get().getBodyAst().getProcessorComponents().size(), is(1));
 
       assertThat(operationModel.getOutput().getType().getMetadataFormat(), is(MetadataFormat.JAVA));
       assertThat(operationModel.getOutput().getType(), instanceOf(VoidType.class));
@@ -481,7 +481,7 @@ public class XmlExtensionLoaderTestCase extends AbstractMuleTestCase {
     Optional<OperationComponentModelModelProperty> modelProperty =
         operationModel.get().getModelProperty(OperationComponentModelModelProperty.class);
     assertThat(modelProperty.isPresent(), is(true));
-    assertThat(modelProperty.get().getBodyConstructAst().getProcessorComponents().size(), is(2));
+    assertThat(modelProperty.get().getBodyAst().getProcessorComponents().size(), is(2));
   }
 
   private void assertParameterWithStereotypes(ParameterModel parameterModel, String propertyName,
