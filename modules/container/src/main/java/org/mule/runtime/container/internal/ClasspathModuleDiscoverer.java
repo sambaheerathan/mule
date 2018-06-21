@@ -12,6 +12,7 @@ import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.mule.runtime.core.api.util.FileUtils.stringToFile;
 import static org.mule.runtime.core.api.util.PropertiesUtils.discoverProperties;
+import org.mule.runtime.api.util.Lapse;
 import org.mule.runtime.container.api.MuleModule;
 import org.mule.runtime.module.artifact.api.classloader.ExportedService;
 
@@ -52,7 +53,7 @@ public class ClasspathModuleDiscoverer implements ModuleDiscoverer {
   public List<MuleModule> discover() {
     List<MuleModule> modules = new LinkedList<>();
     Set<String> moduleNames = new HashSet<>();
-
+    Lapse lapse = new Lapse();
     try {
       for (Properties moduleProperties : discoverProperties(classLoader, getModulePropertiesFileName())) {
         final MuleModule module = createModule(moduleProperties);
@@ -68,6 +69,7 @@ public class ClasspathModuleDiscoverer implements ModuleDiscoverer {
       throw new RuntimeException("Cannot discover mule modules", e);
     }
 
+    lapse.mark("discover modules");
     return modules;
   }
 
@@ -76,6 +78,7 @@ public class ClasspathModuleDiscoverer implements ModuleDiscoverer {
   }
 
   private MuleModule createModule(Properties moduleProperties) {
+    Lapse lapse = new Lapse();
     final String moduleName = (String) moduleProperties.get("module.name");
     Set<String> modulePackages = getExportedPackageByProperty(moduleProperties, EXPORTED_CLASS_PACKAGES_PROPERTY);
     Set<String> modulePaths = getExportedResourcePaths(moduleProperties);
@@ -84,6 +87,7 @@ public class ClasspathModuleDiscoverer implements ModuleDiscoverer {
     Set<String> privilegedArtifacts = getPrivilegedArtifactIds(moduleProperties);
     List<ExportedService> exportedServices = getExportedServices(moduleProperties, EXPORTED_SERVICES_PROPERTY);
 
+    lapse.mark("Create module " + moduleName);
     return new MuleModule(moduleName, modulePackages, modulePaths, modulePrivilegedPackages, privilegedArtifacts,
                           exportedServices);
   }

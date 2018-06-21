@@ -15,24 +15,22 @@ import static org.mule.runtime.container.api.MuleFoldersUtil.getServicesFolder;
 import static org.mule.runtime.core.internal.logging.LogUtil.log;
 import static org.mule.runtime.module.service.internal.manager.LifecycleFilterServiceProxy.createLifecycleFilterServiceProxy;
 import static org.slf4j.LoggerFactory.getLogger;
-
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.lifecycle.Startable;
 import org.mule.runtime.api.lifecycle.Stoppable;
 import org.mule.runtime.api.service.Service;
+import org.mule.runtime.api.util.Lapse;
 import org.mule.runtime.api.util.Pair;
 import org.mule.runtime.core.api.lifecycle.StartException;
-import org.mule.runtime.core.internal.logging.LogUtil;
-import org.mule.runtime.core.internal.util.splash.SplashScreen;
 import org.mule.runtime.module.artifact.api.classloader.ArtifactClassLoader;
 import org.mule.runtime.module.service.api.discoverer.ServiceDiscoverer;
 import org.mule.runtime.module.service.api.manager.ServiceManager;
 
-import org.slf4j.Logger;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.slf4j.Logger;
 
 /**
  * Service manager to use in the Mule container.
@@ -63,11 +61,14 @@ public class MuleServiceManager implements ServiceManager {
       servicesFolder.mkdir();
     }
 
+    Lapse lapse = new Lapse();
     try {
       registeredServices = serviceDiscoverer.discoverServices();
+      lapse.mark("discover services");
       wrappedServices = wrapServices(registeredServices);
-
+      lapse.mark("wrap services");
       startServices();
+      lapse.mark("start services");
     } catch (Exception e) {
       throw new StartException(e, this);
     }

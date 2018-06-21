@@ -10,11 +10,11 @@ import static java.lang.String.format;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
 import static org.springframework.beans.factory.support.BeanDefinitionBuilder.genericBeanDefinition;
-import org.mule.runtime.api.exception.DefaultMuleException;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.lifecycle.InitialisationException;
 import org.mule.runtime.api.lifecycle.LifecycleException;
+import org.mule.runtime.api.util.Lapse;
 import org.mule.runtime.config.internal.dsl.model.ConfigurationDependencyResolver;
 import org.mule.runtime.config.internal.factories.ConstantFactoryBean;
 import org.mule.runtime.core.api.Injector;
@@ -28,6 +28,12 @@ import org.mule.runtime.core.internal.registry.AbstractRegistry;
 import org.mule.runtime.core.internal.registry.LifecycleRegistry;
 import org.mule.runtime.core.privileged.registry.RegistrationException;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.springframework.beans.BeansException;
 import org.springframework.beans.FatalBeanException;
 import org.springframework.beans.factory.BeanFactoryUtils;
@@ -40,12 +46,6 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SpringRegistry extends AbstractRegistry implements LifecycleRegistry, Injector {
 
@@ -99,7 +99,9 @@ public class SpringRegistry extends AbstractRegistry implements LifecycleRegistr
     springContextInitialised.set(true);
 
     if (!readOnly) {
+      Lapse lapse = new Lapse();
       ((ConfigurableApplicationContext) applicationContext).refresh();
+      lapse.mark("app context refresh");
     }
 
   }
