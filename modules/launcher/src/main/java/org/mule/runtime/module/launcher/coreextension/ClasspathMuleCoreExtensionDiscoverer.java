@@ -51,7 +51,7 @@ public class ClasspathMuleCoreExtensionDiscoverer implements MuleCoreExtensionDi
     List<MuleCoreExtension> result = new LinkedList<>();
 
     Enumeration<?> e = ClassUtils.getResources(CORE_EXTENSION_RESOURCE_NAME, getClass().getClassLoader());
-    List<Properties> extensions = new LinkedList<Properties>();
+    List<Properties> extensions = new LinkedList<>();
 
     // load ALL of the extension files first
     while (e.hasMoreElements()) {

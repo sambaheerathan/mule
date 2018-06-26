@@ -80,19 +80,19 @@ public class DefaultLifecyclePhase implements LifecyclePhase {
         }
       }
       //sort(objects, (left, right) -> {
-        //for (int i = 0; i < orderedLifecycleTypes.length; i++) {
-        //  boolean c1 = orderedLifecycleTypes[i].isInstance(left);
-        //  boolean c2 = orderedLifecycleTypes[i].isInstance(right);
-        //  if (c1 && c2) {
-        //    return 0;
-        //  } else if (c1) {
-        //    return -1;
-        //  } else if (c2) {
-        //    return 1;
-        //  }
-        //}
-        //
-        //return 0;
+      //for (int i = 0; i < orderedLifecycleTypes.length; i++) {
+      //  boolean c1 = orderedLifecycleTypes[i].isInstance(left);
+      //  boolean c2 = orderedLifecycleTypes[i].isInstance(right);
+      //  if (c1 && c2) {
+      //    return 0;
+      //  } else if (c1) {
+      //    return -1;
+      //  } else if (c2) {
+      //    return 1;
+      //  }
+      //}
+      //
+      //return 0;
       //});
     }
 
