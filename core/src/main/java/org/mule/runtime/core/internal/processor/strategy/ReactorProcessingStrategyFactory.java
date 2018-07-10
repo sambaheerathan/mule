@@ -19,9 +19,12 @@ import org.mule.runtime.api.scheduler.Scheduler;
 import org.mule.runtime.api.scheduler.SchedulerService;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.construct.FlowConstruct;
+import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
+import reactor.core.publisher.Flux;
 
 import java.util.function.Supplier;
 
@@ -38,7 +41,8 @@ public class ReactorProcessingStrategyFactory extends AbstractProcessingStrategy
   @Override
   public ProcessingStrategy create(MuleContext muleContext, String schedulersNamePrefix) {
     return new ReactorProcessingStrategy(() -> muleContext.getSchedulerService()
-        .cpuLightScheduler(createSchedulerConfig(muleContext, schedulersNamePrefix, CPU_LITE)));
+        .cpuLightScheduler(createSchedulerConfig(muleContext, schedulersNamePrefix, CPU_LITE)),
+                                         getThreadNotificationLogger(muleContext));
   }
 
   @Override
@@ -51,9 +55,15 @@ public class ReactorProcessingStrategyFactory extends AbstractProcessingStrategy
     private final Supplier<Scheduler> cpuLightSchedulerSupplier;
     private Scheduler cpuLightScheduler;
 
+    public ReactorProcessingStrategy(Supplier<Scheduler> cpuLightSchedulerSupplier, ThreadNotificationLogger logger) {
+      super(logger);
+      this.cpuLightSchedulerSupplier = requireNonNull(cpuLightSchedulerSupplier);
+    }
+
     public ReactorProcessingStrategy(Supplier<Scheduler> cpuLightSchedulerSupplier) {
       this.cpuLightSchedulerSupplier = requireNonNull(cpuLightSchedulerSupplier);
     }
+
 
     @Override
     public void start() throws MuleException {
@@ -74,16 +84,25 @@ public class ReactorProcessingStrategyFactory extends AbstractProcessingStrategy
 
     @Override
     public ReactiveProcessor onPipeline(ReactiveProcessor pipeline) {
-      return publisher -> from(publisher).publishOn(fromExecutorService(decorateScheduler(cpuLightScheduler)))
-          .transform(pipeline);
+      return publisher -> {
+        Flux<CoreEvent> p = from(publisher);
+        p = threadNotificationLogger.addStartTransitionLogging(p);
+        p = p.publishOn(fromExecutorService(decorateScheduler(cpuLightScheduler)));
+        p = threadNotificationLogger.addFinishTransitionLogging(p);
+        return p.transform(pipeline);
+      };
     }
 
     @Override
     public ReactiveProcessor onProcessor(ReactiveProcessor processor) {
       if (processor.getProcessingType() == CPU_LITE_ASYNC) {
-        return publisher -> from(publisher).transform(processor)
-            .publishOn(fromExecutorService(decorateScheduler(cpuLightScheduler)))
-            .subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, getCpuLightScheduler()));
+        return publisher -> {
+          Flux<CoreEvent> p = from(publisher).transform(processor);
+          p = threadNotificationLogger.addStartTransitionLogging(p);
+          p = p.publishOn(fromExecutorService(decorateScheduler(cpuLightScheduler)));
+          p = threadNotificationLogger.addFinishTransitionLogging(p);
+          return p.subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, getCpuLightScheduler()));
+        };
       } else {
         return publisher -> from(publisher)
             .transform(processor)

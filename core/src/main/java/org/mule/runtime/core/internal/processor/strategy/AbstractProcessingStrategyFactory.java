@@ -12,6 +12,9 @@ import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.strategy.AsyncProcessingStrategyFactory;
 import org.mule.runtime.api.scheduler.SchedulerConfig;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationService;
+import org.mule.runtime.core.internal.registry.DefaultRegistry;
 
 /**
  * Abstract {@link AsyncProcessingStrategyFactory} implementation that supports the configuration of maximum concurrency.
@@ -54,6 +57,10 @@ public abstract class AbstractProcessingStrategyFactory implements AsyncProcessi
       schedulerConfig = schedulerConfig.withMaxConcurrentTasks(getMaxConcurrency());
     }
     return schedulerConfig;
+  }
+
+  protected ThreadNotificationLogger getThreadNotificationLogger(MuleContext muleContext) {
+    return new ThreadNotificationLogger(new DefaultRegistry(muleContext).lookupByType(ThreadNotificationService.class));
   }
 
 }

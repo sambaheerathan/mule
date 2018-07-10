@@ -19,9 +19,11 @@ import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
 import org.mule.runtime.core.internal.exception.MessagingException;
 import org.mule.runtime.core.privileged.event.BaseEventContext;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
@@ -35,6 +37,16 @@ public abstract class AbstractProcessingStrategy implements ProcessingStrategy {
   public static final String TRANSACTIONAL_ERROR_MESSAGE = "Unable to process a transactional flow asynchronously";
 
   public static final String PROCESSOR_SCHEDULER_CONTEXT_KEY = "mule.nb.processorScheduler";
+
+  protected final ThreadNotificationLogger threadNotificationLogger;
+
+  public AbstractProcessingStrategy() {
+    this.threadNotificationLogger = new ThreadNotificationLogger(Optional.empty());
+  }
+
+  public AbstractProcessingStrategy(ThreadNotificationLogger threadNotificationLogger) {
+    this.threadNotificationLogger = threadNotificationLogger;
+  }
 
   @Override
   public Sink createSink(FlowConstruct flowConstruct, ReactiveProcessor pipeline) {

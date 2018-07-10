@@ -23,6 +23,7 @@ import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
 import org.mule.runtime.core.internal.processor.strategy.ProactorStreamProcessingStrategyFactory.ProactorStreamProcessingStrategy;
 import org.mule.runtime.core.internal.util.rx.ConditionalExecutorServiceDecorator;
 
@@ -52,7 +53,8 @@ public class TransactionAwareProactorStreamProcessingStrategyFactory extends Rea
                                                                     .cpuIntensiveScheduler(muleContext.getSchedulerBaseConfig()
                                                                         .withName(schedulersNamePrefix + "."
                                                                             + CPU_INTENSIVE.name())),
-                                                                getMaxConcurrency());
+                                                                getMaxConcurrency(),
+                                                                getThreadNotificationLogger(muleContext));
   }
 
   @Override
@@ -61,6 +63,21 @@ public class TransactionAwareProactorStreamProcessingStrategyFactory extends Rea
   }
 
   static class TransactionAwareProactorStreamProcessingStrategy extends ProactorStreamProcessingStrategy {
+
+    TransactionAwareProactorStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier,
+                                                     int bufferSize,
+                                                     int subscriberCount,
+                                                     String waitStrategy,
+                                                     Supplier<Scheduler> cpuLightSchedulerSupplier,
+                                                     Supplier<Scheduler> blockingSchedulerSupplier,
+                                                     Supplier<Scheduler> cpuIntensiveSchedulerSupplier,
+                                                     int maxConcurrency,
+                                                     ThreadNotificationLogger logger)
+
+    {
+      super(ringBufferSchedulerSupplier, bufferSize, subscriberCount, waitStrategy, cpuLightSchedulerSupplier,
+            blockingSchedulerSupplier, cpuIntensiveSchedulerSupplier, CORES, maxConcurrency, logger);
+    }
 
     TransactionAwareProactorStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier,
                                                      int bufferSize,

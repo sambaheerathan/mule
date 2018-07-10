@@ -32,12 +32,14 @@ import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.ReactiveProcessor.ProcessingType;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
 
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 
+import reactor.core.publisher.Flux;
 import reactor.retry.BackoffDelay;
 
 /**
@@ -57,6 +59,7 @@ public class ProactorStreamProcessingStrategyFactory extends ReactorStreamProces
   protected static final long STREAM_PAYLOAD_BLOCKING_IO_THRESHOLD =
       getLong(SYSTEM_PROPERTY_PREFIX + "STREAM_PAYLOAD_BLOCKING_IO_THRESHOLD", KB.toBytes(16));
 
+
   @Override
   public ProcessingStrategy create(MuleContext muleContext, String schedulersNamePrefix) {
     return new ProactorStreamProcessingStrategy(getRingBufferSchedulerSupplier(muleContext, schedulersNamePrefix),
@@ -71,7 +74,8 @@ public class ProactorStreamProcessingStrategyFactory extends ReactorStreamProces
                                                     .cpuIntensiveScheduler(muleContext.getSchedulerBaseConfig()
                                                         .withName(schedulersNamePrefix + "." + CPU_INTENSIVE.name())),
                                                 resolveParallelism(),
-                                                getMaxConcurrency());
+                                                getMaxConcurrency(),
+                                                getThreadNotificationLogger(muleContext));
   }
 
   @Override
@@ -109,6 +113,24 @@ public class ProactorStreamProcessingStrategyFactory extends ReactorStreamProces
     private Supplier<Scheduler> cpuIntensiveSchedulerSupplier;
     private Scheduler blockingScheduler;
     private Scheduler cpuIntensiveScheduler;
+
+    public ProactorStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier,
+                                            int bufferSize,
+                                            int subscriberCount,
+                                            String waitStrategy,
+                                            Supplier<Scheduler> cpuLightSchedulerSupplier,
+                                            Supplier<Scheduler> blockingSchedulerSupplier,
+                                            Supplier<Scheduler> cpuIntensiveSchedulerSupplier,
+                                            int parrelism,
+                                            int maxConcurrency,
+                                            ThreadNotificationLogger logger)
+
+    {
+      super(ringBufferSchedulerSupplier, bufferSize, subscriberCount, waitStrategy, cpuLightSchedulerSupplier, parrelism,
+            maxConcurrency, logger);
+      this.blockingSchedulerSupplier = blockingSchedulerSupplier;
+      this.cpuIntensiveSchedulerSupplier = cpuIntensiveSchedulerSupplier;
+    }
 
     public ProactorStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier,
                                             int bufferSize,
@@ -180,10 +202,16 @@ public class ProactorStreamProcessingStrategyFactory extends ReactorStreamProces
     private Publisher<CoreEvent> scheduleProcessor(ReactiveProcessor processor,
                                                    reactor.core.scheduler.Scheduler eventLoopScheduler,
                                                    Scheduler processorScheduler, CoreEvent event) {
-      return just(event)
-          .transform(processor)
-          .subscribeOn(fromExecutorService(decorateScheduler(processorScheduler)))
-          .publishOn(eventLoopScheduler)
+
+      Flux<CoreEvent> publisher = just(event).transform(processor);
+      publisher = threadNotificationLogger.addStartTransitionLogging(publisher);
+
+      publisher = publisher.subscribeOn(fromExecutorService(decorateScheduler(processorScheduler)));
+      publisher = threadNotificationLogger.addFinishTransitionLogging(publisher);
+      publisher = threadNotificationLogger.addStartTransitionLogging(publisher);
+      publisher = publisher.publishOn(eventLoopScheduler);
+      publisher = threadNotificationLogger.addFinishTransitionLogging(publisher);
+      return publisher
           .subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, processorScheduler))
           .doOnError(RejectedExecutionException.class,
                      throwable -> LOGGER.trace("Shared scheduler " + processorScheduler.getName()

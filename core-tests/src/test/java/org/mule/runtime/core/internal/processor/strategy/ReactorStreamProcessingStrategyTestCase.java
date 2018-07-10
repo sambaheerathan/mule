@@ -36,6 +36,7 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
 import org.junit.Test;
 
+
 @Feature(PROCESSING_STRATEGIES)
 @Story(REACTOR)
 public class ReactorStreamProcessingStrategyTestCase extends ReactorProcessingStrategyTestCase {

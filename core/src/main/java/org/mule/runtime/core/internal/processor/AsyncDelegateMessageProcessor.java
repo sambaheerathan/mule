@@ -46,7 +46,10 @@ import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.AsyncProcessingStrategyFactory;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategyFactory;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationService;
 import org.mule.runtime.core.internal.exception.MessagingException;
+import org.mule.runtime.core.internal.registry.DefaultRegistry;
 import org.mule.runtime.core.privileged.event.BaseEventContext;
 import org.mule.runtime.core.privileged.event.DefaultMuleSession;
 import org.mule.runtime.core.privileged.event.PrivilegedEvent;
@@ -62,6 +65,7 @@ import javax.inject.Inject;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 
 /**
  * Processes {@link CoreEvent}'s asynchronously using a {@link ProcessingStrategy} to schedule asynchronous processing of
@@ -92,6 +96,7 @@ public class AsyncDelegateMessageProcessor extends AbstractMessageProcessorOwner
   private reactor.core.scheduler.Scheduler reactorScheduler;
   protected String name;
   private Integer maxConcurrency;
+  private ThreadNotificationLogger threadNotificationLogger;
 
   public AsyncDelegateMessageProcessor(MessageProcessorChainBuilder delegate) {
     this.delegateBuilder = delegate;
@@ -128,6 +133,8 @@ public class AsyncDelegateMessageProcessor extends AbstractMessageProcessorOwner
 
     delegateBuilder.setProcessingStrategy(processingStrategy);
     delegate = delegateBuilder.build();
+    this.threadNotificationLogger =
+        new ThreadNotificationLogger(new DefaultRegistry(muleContext).lookupByType(ThreadNotificationService.class));
     initialiseIfNeeded(delegate, muleContext);
 
     super.initialise();
@@ -226,7 +233,13 @@ public class AsyncDelegateMessageProcessor extends AbstractMessageProcessorOwner
   private ReactiveProcessor scheduleAsync(Processor delegate) {
     if (processingStrategy.isSynchronous()) {
       // schedule async processing using IO pool.
-      return publisher -> from(publisher).transform(delegate).subscribeOn(reactorScheduler);
+      return publisher -> {
+        Flux<CoreEvent> p = from(publisher).transform(delegate);
+        p = threadNotificationLogger.addStartTransitionLogging(p);
+        p.subscribeOn(reactorScheduler);
+        p = threadNotificationLogger.addFinishTransitionLogging(p);
+        return p;
+      };
     } else {
       return delegate;
     }

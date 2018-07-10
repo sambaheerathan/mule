@@ -20,9 +20,12 @@ import org.mule.runtime.api.lifecycle.Stoppable;
 import org.mule.runtime.api.scheduler.Scheduler;
 import org.mule.runtime.api.scheduler.SchedulerService;
 import org.mule.runtime.core.api.MuleContext;
+import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +52,7 @@ public class WorkQueueStreamProcessingStrategyFactory extends AbstractStreamProc
                                                  () -> muleContext.getSchedulerService()
                                                      .ioScheduler(muleContext.getSchedulerBaseConfig()
                                                          .withName(schedulersNamePrefix + "." + BLOCKING.name())),
-                                                 getMaxConcurrency());
+                                                 getMaxConcurrency(), getThreadNotificationLogger(muleContext));
   }
 
   @Override
@@ -66,6 +69,14 @@ public class WorkQueueStreamProcessingStrategyFactory extends AbstractStreamProc
     protected WorkQueueStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier, int bufferSize,
                                                 int subscribers,
                                                 String waitStrategy, Supplier<Scheduler> blockingSchedulerSupplier,
+                                                int maxConcurrency, ThreadNotificationLogger logger) {
+      super(ringBufferSchedulerSupplier, bufferSize, subscribers, waitStrategy, maxConcurrency, logger);
+      this.blockingSchedulerSupplier = requireNonNull(blockingSchedulerSupplier);
+    }
+
+    protected WorkQueueStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier, int bufferSize,
+                                                int subscribers,
+                                                String waitStrategy, Supplier<Scheduler> blockingSchedulerSupplier,
                                                 int maxConcurrency) {
       super(ringBufferSchedulerSupplier, bufferSize, subscribers, waitStrategy, maxConcurrency);
       this.blockingSchedulerSupplier = requireNonNull(blockingSchedulerSupplier);
@@ -75,10 +86,13 @@ public class WorkQueueStreamProcessingStrategyFactory extends AbstractStreamProc
     public ReactiveProcessor onPipeline(ReactiveProcessor pipeline) {
       if (maxConcurrency > subscribers) {
         return publisher -> from(publisher)
-            .flatMap(event -> just(event).transform(pipeline)
-                .subscribeOn(fromExecutorService(decorateScheduler(blockingScheduler)))
-                .subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, blockingScheduler)),
-                     maxConcurrency);
+            .flatMap(event -> {
+              Flux<CoreEvent> p = just(event).transform(pipeline);
+              p = threadNotificationLogger.addStartTransitionLogging(p);
+              p = p.subscribeOn(fromExecutorService(decorateScheduler(blockingScheduler)));
+              p = threadNotificationLogger.addFinishTransitionLogging(p);
+              return p.subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, blockingScheduler));
+            }, maxConcurrency);
       } else {
         return super.onPipeline(pipeline);
       }
@@ -87,8 +101,13 @@ public class WorkQueueStreamProcessingStrategyFactory extends AbstractStreamProc
     @Override
     public ReactiveProcessor onProcessor(ReactiveProcessor processor) {
       if (processor.getProcessingType() == CPU_LITE_ASYNC) {
-        return publisher -> from(publisher).transform(processor)
-            .publishOn(fromExecutorService(decorateScheduler(blockingScheduler)));
+        return publisher -> {
+          Flux<CoreEvent> p = from(publisher).transform(processor);
+          p = threadNotificationLogger.addStartTransitionLogging(p);
+          p = p.publishOn(fromExecutorService(decorateScheduler(blockingScheduler)));
+          p = threadNotificationLogger.addFinishTransitionLogging(p);
+          return p;
+        };
       } else {
         return super.onProcessor(processor);
       }

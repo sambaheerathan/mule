@@ -19,8 +19,11 @@ import org.mule.runtime.api.lifecycle.Stoppable;
 import org.mule.runtime.api.scheduler.Scheduler;
 import org.mule.runtime.api.scheduler.SchedulerService;
 import org.mule.runtime.core.api.MuleContext;
+import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
+import reactor.core.publisher.Flux;
 
 import java.util.function.Supplier;
 
@@ -43,7 +46,8 @@ public class ReactorStreamProcessingStrategyFactory extends AbstractStreamProces
                                                getWaitStrategy(),
                                                getCpuLightSchedulerSupplier(muleContext, schedulersNamePrefix),
                                                resolveParallelism(),
-                                               getMaxConcurrency());
+                                               getMaxConcurrency(),
+                                               getThreadNotificationLogger(muleContext));
   }
 
   protected int resolveParallelism() {
@@ -73,6 +77,14 @@ public class ReactorStreamProcessingStrategyFactory extends AbstractStreamProces
 
     ReactorStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier, int bufferSize, int subscribers,
                                     String waitStrategy, Supplier<Scheduler> cpuLightSchedulerSupplier, int parallelism,
+                                    int maxConcurrency, ThreadNotificationLogger logger) {
+      super(ringBufferSchedulerSupplier, bufferSize, subscribers, waitStrategy, maxConcurrency, logger);
+      this.cpuLightSchedulerSupplier = cpuLightSchedulerSupplier;
+      this.parallelism = parallelism;
+    }
+
+    ReactorStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier, int bufferSize, int subscribers,
+                                    String waitStrategy, Supplier<Scheduler> cpuLightSchedulerSupplier, int parallelism,
                                     int maxConcurrency) {
       super(ringBufferSchedulerSupplier, bufferSize, subscribers, waitStrategy, maxConcurrency);
       this.cpuLightSchedulerSupplier = cpuLightSchedulerSupplier;
@@ -96,10 +108,13 @@ public class ReactorStreamProcessingStrategyFactory extends AbstractStreamProces
     public ReactiveProcessor onProcessor(ReactiveProcessor processor) {
       reactor.core.scheduler.Scheduler cpuLightScheduler = fromExecutorService(decorateScheduler(getCpuLightScheduler()));
       if (processor.getProcessingType() == CPU_LITE_ASYNC) {
-        return publisher -> from(publisher)
-            .transform(processor)
-            .publishOn(cpuLightScheduler)
-            .subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, getCpuLightScheduler()));
+        return publisher -> {
+          Flux<CoreEvent> p = from(publisher).transform(processor);
+          p = threadNotificationLogger.addStartTransitionLogging(p);
+          p = p.publishOn(cpuLightScheduler);
+          p = threadNotificationLogger.addFinishTransitionLogging(p);
+          return p.subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, getCpuLightScheduler()));
+        };
       } else {
         return publisher -> from(publisher)
             .transform(processor)

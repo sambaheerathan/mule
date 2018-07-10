@@ -108,6 +108,8 @@ import org.mule.runtime.core.internal.connectivity.DefaultConnectivityTestingSer
 import org.mule.runtime.core.internal.context.notification.DefaultNotificationDispatcher;
 import org.mule.runtime.core.internal.context.notification.DefaultNotificationListenerRegistry;
 import org.mule.runtime.core.internal.context.notification.MessageProcessingFlowTraceManager;
+import org.mule.runtime.core.internal.context.thread.notification.DefaultThreadNotificationService;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationService;
 import org.mule.runtime.core.internal.el.mvel.MVELExpressionLanguage;
 import org.mule.runtime.core.internal.event.DefaultEventContextService;
 import org.mule.runtime.core.internal.exception.MessagingExceptionLocationProvider;
@@ -232,6 +234,7 @@ class SpringMuleContextServiceConfigurator {
       .put(OBJECT_SCHEDULER_BASE_CONFIG, getBeanDefinition(SchedulerBaseConfigFactory.class))
       .put(OBJECT_CLUSTER_SERVICE, getBeanDefinition(DefaultClusterService.class))
       .put(LAZY_COMPONENT_INITIALIZER_SERVICE_KEY, getBeanDefinition(NoOpLazyComponentInitializer.class))
+      .put(ThreadNotificationService.REGISTRY_KEY, getBeanDefinition(DefaultThreadNotificationService.class))
       .build();
 
   private final SpringConfigurationComponentLocator componentLocator;

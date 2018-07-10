@@ -18,6 +18,7 @@ import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
 import org.mule.runtime.api.scheduler.SchedulerService;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
 import org.mule.runtime.core.internal.util.rx.ConditionalExecutorServiceDecorator;
 
 import java.util.concurrent.ExecutorService;
@@ -46,7 +47,7 @@ public class TransactionAwareWorkQueueStreamProcessingStrategyFactory extends Wo
                                                                  () -> muleContext.getSchedulerService()
                                                                      .ioScheduler(muleContext.getSchedulerBaseConfig()
                                                                          .withName(schedulersNamePrefix + "." + BLOCKING.name())),
-                                                                 getMaxConcurrency());
+                                                                 getMaxConcurrency(), getThreadNotificationLogger(muleContext));
   }
 
   @Override
@@ -55,6 +56,16 @@ public class TransactionAwareWorkQueueStreamProcessingStrategyFactory extends Wo
   }
 
   static class TransactionAwareWorkQueueStreamProcessingStrategy extends WorkQueueStreamProcessingStrategy {
+
+    protected TransactionAwareWorkQueueStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier, int bufferSize,
+                                                                int subscribers,
+                                                                String waitStrategy,
+                                                                Supplier<Scheduler> blockingSchedulerSupplier,
+                                                                int maxConcurrency,
+                                                                ThreadNotificationLogger logger) {
+      super(ringBufferSchedulerSupplier, bufferSize, subscribers, waitStrategy, blockingSchedulerSupplier, maxConcurrency,
+            logger);
+    }
 
     protected TransactionAwareWorkQueueStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier, int bufferSize,
                                                                 int subscribers,

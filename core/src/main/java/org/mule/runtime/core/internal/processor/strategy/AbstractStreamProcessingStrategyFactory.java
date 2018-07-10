@@ -40,6 +40,7 @@ import org.mule.runtime.core.api.processor.strategy.ProcessingStrategyFactory;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
 
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
 import reactor.core.publisher.WorkQueueProcessor;
 
 /**
@@ -143,6 +144,17 @@ abstract class AbstractStreamProcessingStrategyFactory extends AbstractProcessin
     final protected WaitStrategy waitStrategy;
     final protected int maxConcurrency;
     final private ClassLoader executionClassloader;
+
+    protected AbstractStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier, int bufferSize, int subscribers,
+                                               String waitStrategy, int maxConcurrency, ThreadNotificationLogger logger) {
+      super(logger);
+      this.subscribers = requireNonNull(subscribers);
+      this.waitStrategy = valueOf(waitStrategy);
+      this.bufferSize = requireNonNull(bufferSize);
+      this.ringBufferSchedulerSupplier = requireNonNull(ringBufferSchedulerSupplier);
+      this.maxConcurrency = requireNonNull(maxConcurrency);
+      this.executionClassloader = currentThread().getContextClassLoader();
+    }
 
     protected AbstractStreamProcessingStrategy(Supplier<Scheduler> ringBufferSchedulerSupplier, int bufferSize, int subscribers,
                                                String waitStrategy, int maxConcurrency) {

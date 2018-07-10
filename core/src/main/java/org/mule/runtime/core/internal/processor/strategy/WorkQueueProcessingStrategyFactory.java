@@ -18,10 +18,16 @@ import org.mule.runtime.api.lifecycle.Stoppable;
 import org.mule.runtime.api.scheduler.Scheduler;
 import org.mule.runtime.core.api.MuleContext;
 import org.mule.runtime.core.api.construct.FlowConstruct;
+import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationService;
+import org.mule.runtime.core.internal.registry.DefaultRegistry;
+import reactor.core.publisher.Flux;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -38,7 +44,8 @@ public class WorkQueueProcessingStrategyFactory extends AbstractProcessingStrate
   @Override
   public ProcessingStrategy create(MuleContext muleContext, String schedulersNamePrefix) {
     return new WorkQueueProcessingStrategy(() -> muleContext.getSchedulerService()
-        .ioScheduler(createSchedulerConfig(muleContext, schedulersNamePrefix, BLOCKING)));
+        .ioScheduler(createSchedulerConfig(muleContext, schedulersNamePrefix, BLOCKING)),
+                                           getThreadNotificationLogger(muleContext));
   }
 
   @Override
@@ -51,6 +58,11 @@ public class WorkQueueProcessingStrategyFactory extends AbstractProcessingStrate
     private final Supplier<Scheduler> ioSchedulerSupplier;
     private Scheduler ioScheduler;
 
+    public WorkQueueProcessingStrategy(Supplier<Scheduler> ioSchedulerSupplier, ThreadNotificationLogger logger) {
+      super(logger);
+      this.ioSchedulerSupplier = requireNonNull(ioSchedulerSupplier);
+    }
+
     public WorkQueueProcessingStrategy(Supplier<Scheduler> ioSchedulerSupplier) {
       this.ioSchedulerSupplier = requireNonNull(ioSchedulerSupplier);
     }
@@ -62,18 +74,27 @@ public class WorkQueueProcessingStrategyFactory extends AbstractProcessingStrate
 
     @Override
     public ReactiveProcessor onPipeline(ReactiveProcessor pipeline) {
-      return publisher -> from(publisher)
-          .publishOn(fromExecutorService(decorateScheduler(ioScheduler)))
-          .transform(pipeline)
-          .subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, ioScheduler));
+      return publisher -> {
+        Flux<CoreEvent> p = from(publisher);
+        p = threadNotificationLogger.addStartTransitionLogging(p);
+        p = p.publishOn(fromExecutorService(decorateScheduler(ioScheduler)));
+        p = threadNotificationLogger.addFinishTransitionLogging(p);
+        return p.transform(pipeline)
+            .subscriberContext(ctx -> ctx.put(PROCESSOR_SCHEDULER_CONTEXT_KEY, ioScheduler));
+      };
     }
 
     @Override
     public ReactiveProcessor onProcessor(ReactiveProcessor processor) {
       if (processor.getProcessingType() == CPU_LITE_ASYNC) {
-        return publisher -> from(publisher)
-            .transform(processor)
-            .publishOn(fromExecutorService(decorateScheduler(ioScheduler)));
+        return publisher -> {
+          Flux<CoreEvent> p = from(publisher);
+          p = p.transform(processor);
+          p = threadNotificationLogger.addStartTransitionLogging(p);
+          p = p.publishOn(fromExecutorService(decorateScheduler(ioScheduler)));
+          p = threadNotificationLogger.addFinishTransitionLogging(p);
+          return p;
+        };
       } else {
         return super.onProcessor(processor);
       }

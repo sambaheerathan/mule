@@ -20,6 +20,7 @@ import org.mule.runtime.core.api.processor.ReactiveProcessor;
 import org.mule.runtime.core.api.processor.Sink;
 import org.mule.runtime.core.api.processor.strategy.ProcessingStrategy;
 import org.mule.runtime.api.scheduler.SchedulerConfig;
+import org.mule.runtime.core.internal.context.thread.notification.ThreadNotificationLogger;
 import org.mule.runtime.core.internal.util.rx.ConditionalExecutorServiceDecorator;
 
 import java.util.concurrent.ExecutorService;
@@ -41,7 +42,7 @@ public class TransactionAwareWorkQueueProcessingStrategyFactory extends WorkQueu
     }
     SchedulerConfig finalSchedulerConfig = schedulerConfig;
     return new TransactionAwareWorkQueueProcessingStrategy(() -> muleContext.getSchedulerService()
-        .ioScheduler(finalSchedulerConfig));
+        .ioScheduler(finalSchedulerConfig), getThreadNotificationLogger(muleContext));
   }
 
   @Override
@@ -50,6 +51,11 @@ public class TransactionAwareWorkQueueProcessingStrategyFactory extends WorkQueu
   }
 
   static class TransactionAwareWorkQueueProcessingStrategy extends WorkQueueProcessingStrategy {
+
+    protected TransactionAwareWorkQueueProcessingStrategy(Supplier<Scheduler> ioSchedulerSupplier,
+                                                          ThreadNotificationLogger logger) {
+      super(ioSchedulerSupplier, logger);
+    }
 
     protected TransactionAwareWorkQueueProcessingStrategy(Supplier<Scheduler> ioSchedulerSupplier) {
       super(ioSchedulerSupplier);
