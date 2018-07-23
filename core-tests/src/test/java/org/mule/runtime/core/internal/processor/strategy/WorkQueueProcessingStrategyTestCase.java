@@ -217,8 +217,7 @@ public class WorkQueueProcessingStrategyTestCase extends AbstractProcessingStrat
   @Description("If IO pool is busy OVERLOAD error is thrown")
   public void rejectedExecution() throws Exception {
     flow = flowBuilder.get().processors(blockingProcessor)
-        .processingStrategyFactory((context,
-                                    prefix) -> new WorkQueueProcessingStrategy(() -> new RejectingScheduler(blocking)))
+        .processingStrategyFactory((context, prefix) -> new WorkQueueProcessingStrategy(() -> new RejectingScheduler(blocking)))
         .build();
     flow.initialise();
     flow.start();
@@ -230,8 +229,7 @@ public class WorkQueueProcessingStrategyTestCase extends AbstractProcessingStrat
   @Description("If IO pool has maximum size of 1 only 1 thread is used for CPU_LIGHT processor and further requests block.")
   public void singleCpuLightConcurrentMaxConcurrency1() throws Exception {
     internalConcurrent(flowBuilder.get()
-        .processingStrategyFactory((context,
-                                    prefix) -> new WorkQueueProcessingStrategy(() -> new TestScheduler(1, IO, true))),
+        .processingStrategyFactory((context, prefix) -> new WorkQueueProcessingStrategy(() -> new TestScheduler(1, IO, true))),
                        true,
                        CPU_LITE, 1);
     assertThat(threads, hasSize(1));
@@ -245,8 +243,7 @@ public class WorkQueueProcessingStrategyTestCase extends AbstractProcessingStrat
   @Description("If IO pool has maximum size of 1 only 1 thread is used  for BLOCKING processor and further requests block.")
   public void singleBlockingConcurrentMaxConcurrency1() throws Exception {
     internalConcurrent(flowBuilder.get()
-        .processingStrategyFactory((context,
-                                    prefix) -> new WorkQueueProcessingStrategy(() -> new TestScheduler(1, IO, true))),
+        .processingStrategyFactory((context, prefix) -> new WorkQueueProcessingStrategy(() -> new TestScheduler(1, IO, true))),
                        true,
                        BLOCKING, 1);
     assertThat(threads, hasSize(1));
@@ -297,8 +294,7 @@ public class WorkQueueProcessingStrategyTestCase extends AbstractProcessingStrat
     Scheduler rejectingSchedulerSpy = spy(new RejectingScheduler(blockingSchedulerSpy));
 
     flow = flowBuilder.get().processors(blockingProcessor)
-        .processingStrategyFactory((context,
-                                    prefix) -> new WorkQueueProcessingStrategy(() -> rejectingSchedulerSpy))
+        .processingStrategyFactory((context, prefix) -> new WorkQueueProcessingStrategy(() -> rejectingSchedulerSpy))
         .build();
     flow.initialise();
     flow.start();
