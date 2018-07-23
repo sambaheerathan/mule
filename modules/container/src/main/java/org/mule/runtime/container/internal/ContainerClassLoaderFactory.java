@@ -7,6 +7,7 @@
 
 package org.mule.runtime.container.internal;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static org.mule.runtime.api.util.Preconditions.checkArgument;
 import static org.mule.runtime.module.artifact.api.classloader.ParentFirstLookupStrategy.PARENT_FIRST;
 import org.mule.runtime.container.api.ModuleRepository;
@@ -63,6 +64,9 @@ public class ContainerClassLoaderFactory {
       return new EnumerationAdapter<>(Collections.emptyList());
     }
   }
+
+  private static final Set<String> JRE_EXTENDABLE_PACKAGES =
+      newHashSet("javax.", "org.w3c.dom", "org.omg", "org.xml.sax", "org.ietf.jgss");
 
   // TODO(pablo.kraan): MULE-9524: Add a way to configure system and boot packages used on class loading lookup
   /**
@@ -163,9 +167,9 @@ public class ContainerClassLoaderFactory {
     final Map<String, LookupStrategy> result = new HashMap<>();
     for (MuleModule muleModule : modules) {
       for (String exportedPackage : muleModule.getExportedPackages()) {
-        // Lets artifacts to extend javax packages
-        result.put(exportedPackage, exportedPackage.startsWith("javax.") ? PARENT_FIRST
-            : containerOnlyLookupStrategy);
+        // Let artifacts extend javax and org JRE packages
+        result.put(exportedPackage, JRE_EXTENDABLE_PACKAGES.stream()
+            .anyMatch(exportedPackage::startsWith) ? PARENT_FIRST : containerOnlyLookupStrategy);
       }
     }
 
